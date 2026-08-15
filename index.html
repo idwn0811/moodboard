@@ -76,6 +76,11 @@
     color:rgba(243,236,222,0.72);
   }
 
+  .local-note{
+    margin-top:1.2rem;
+    font-size:0.85rem;
+    color:rgba(217,164,65,0.85);
+  }
   .gh-toggle{
     margin-top:1.8rem;
     background:transparent;
@@ -213,6 +218,17 @@
     text-transform:uppercase;
     letter-spacing:0.14em;
     color:rgba(243,236,222,0.5);
+  }
+  .file-input-hidden{
+    position:absolute;
+    width:1px;
+    height:1px;
+    padding:0;
+    margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
   }
   .add-photo-btn{
     display:inline-block;
@@ -356,19 +372,7 @@
 <section class="hero">
   <div class="eyebrow">Kế hoạch chụp ảnh cưới</div>
   <h1>Mood Board <em>Prewedding</em></h1>
-  <button class="gh-toggle" id="ghToggle">⚙ Kết nối GitHub — <span id="ghStatusLabel">chưa kết nối</span></button>
-  <div class="gh-panel" id="ghPanel">
-    <p class="gh-panel-desc">Kết nối tới repo GitHub đang host trang này để ảnh tải lên được lưu thẳng vào repo — ai xem trang cũng thấy, không chỉ máy bạn.</p>
-    <div class="gh-field"><label>Tên chủ repo (username)</label><input type="text" id="ghOwner" placeholder="vd: jayden123"></div>
-    <div class="gh-field"><label>Tên repo</label><input type="text" id="ghRepo" placeholder="vd: prewedding-moodboard"></div>
-    <div class="gh-field"><label>Nhánh (branch)</label><input type="text" id="ghBranch" placeholder="main"></div>
-    <div class="gh-field"><label>Personal Access Token (chỉ để trên máy bạn)</label><input type="password" id="ghToken" placeholder="ghp_..."></div>
-    <div class="gh-actions">
-      <button class="gh-save" id="ghSave">Lưu kết nối</button>
-      <button class="gh-clear" id="ghClear">Ngắt kết nối</button>
-    </div>
-    <p class="gh-hint">Token cần quyền "repo" (hoặc fine-grained: Contents: Read and write) cho đúng repo này. Token chỉ lưu trong trình duyệt của bạn, không được ghi vào file.</p>
-  </div>
+  <p class="local-note">Bản lưu cục bộ trên máy — không cần mạng, ảnh lưu ngay trên trình duyệt/thiết bị này.</p>
 </section>
 
 <section class="boards">
@@ -386,7 +390,7 @@
       <div class="photos-head">
         <div class="label">Ảnh tham khảo</div>
         <label class="add-photo-btn" for="file-badaa">+ Thêm ảnh</label>
-        <input type="file" id="file-badaa" accept="image/*" multiple style="display:none" data-input-for="badaa">
+        <input type="file" id="file-badaa" accept="image/*" multiple class="file-input-hidden" data-input-for="badaa">
       </div>
       <div class="photo-grid" data-gallery="badaa">
         <div class="photo-empty">Chưa có ảnh — bấm "Thêm ảnh" để tải lên</div>
@@ -402,7 +406,7 @@
       <div class="photos-head">
         <div class="label">Ảnh tham khảo</div>
         <label class="add-photo-btn" for="file-sontra">+ Thêm ảnh</label>
-        <input type="file" id="file-sontra" accept="image/*" multiple style="display:none" data-input-for="sontra">
+        <input type="file" id="file-sontra" accept="image/*" multiple class="file-input-hidden" data-input-for="sontra">
       </div>
       <div class="photo-grid" data-gallery="sontra">
         <div class="photo-empty">Chưa có ảnh — bấm "Thêm ảnh" để tải lên</div>
@@ -418,7 +422,7 @@
       <div class="photos-head">
         <div class="label">Ảnh tham khảo</div>
         <label class="add-photo-btn" for="file-studio">+ Thêm ảnh</label>
-        <input type="file" id="file-studio" accept="image/*" multiple style="display:none" data-input-for="studio">
+        <input type="file" id="file-studio" accept="image/*" multiple class="file-input-hidden" data-input-for="studio">
       </div>
       <div class="photo-grid" data-gallery="studio">
         <div class="photo-empty">Chưa có ảnh — bấm "Thêm ảnh" để tải lên</div>
@@ -458,8 +462,7 @@
     catch(e){ return null; }
   }
   function ghConfigured(){
-    const s = ghSettings();
-    return !!(s && s.owner && s.repo);
+    return false; // bản local — luôn lưu trên thiết bị, không dùng GitHub
   }
   function ghCanWrite(){
     const s = ghSettings();
@@ -512,53 +515,7 @@
     return res.json();
   }
 
-  function refreshGhStatusLabel(){
-    const label = document.getElementById('ghStatusLabel');
-    const s = ghSettings();
-    if(s && s.owner && s.repo){
-      label.textContent = `${s.owner}/${s.repo}` + (s.token ? '' : ' (chỉ xem — chưa có token)');
-      label.classList.add('connected');
-    }else{
-      label.textContent = 'chưa kết nối';
-      label.classList.remove('connected');
-    }
-  }
-
-  (function initGhForm(){
-    const s = ghSettings();
-    if(s){
-      document.getElementById('ghOwner').value = s.owner || '';
-      document.getElementById('ghRepo').value = s.repo || '';
-      document.getElementById('ghBranch').value = s.branch || '';
-      document.getElementById('ghToken').value = s.token || '';
-    }
-    refreshGhStatusLabel();
-  })();
-
-  document.getElementById('ghToggle').addEventListener('click', () => {
-    document.getElementById('ghPanel').classList.toggle('open');
-  });
-  document.getElementById('ghSave').addEventListener('click', () => {
-    const owner = document.getElementById('ghOwner').value.trim();
-    const repo = document.getElementById('ghRepo').value.trim();
-    const branch = document.getElementById('ghBranch').value.trim() || 'main';
-    const token = document.getElementById('ghToken').value.trim();
-    if(!owner || !repo){ alert('Cần nhập tên chủ repo và tên repo.'); return; }
-    localStorage.setItem('moodboard:ghconfig', JSON.stringify({ owner, repo, branch, token }));
-    refreshGhStatusLabel();
-    document.getElementById('ghPanel').classList.remove('open');
-    boardIds.forEach(id => loadGallery(id));
-    loadText();
-  });
-  document.getElementById('ghClear').addEventListener('click', () => {
-    localStorage.removeItem('moodboard:ghconfig');
-    ['ghOwner','ghRepo','ghBranch','ghToken'].forEach(fid => document.getElementById(fid).value = '');
-    refreshGhStatusLabel();
-    boardIds.forEach(id => loadGallery(id));
-    loadText();
-  });
-
-  // ---------- Lưu trữ cục bộ (dự phòng khi chưa kết nối GitHub) ----------
+  // ---------- Lưu trữ cục bộ trên thiết bị (localStorage) ----------
   const STORE_PREFIX = 'moodboard:v3:';
   const memoryStore = {};
 
@@ -663,16 +620,26 @@
   });
 
   // Thu nhỏ & nén ảnh trước khi lưu, tránh vượt giới hạn lưu trữ / dung lượng repo
-  function fileToCompressedDataUrl(file, maxDim = 1600, quality = 0.82){
+  function readFileAsDataUrl(file){
     return new Promise((resolve, reject) => {
-      if(!file.type || !file.type.startsWith('image/')){ reject(new Error('not an image')); return; }
       const reader = new FileReader();
-      reader.onerror = reject;
-      reader.onload = () => {
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('Không đọc được file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Nén + thu nhỏ ảnh; nếu trình duyệt không giải mã được (vd ảnh HEIC trên một số Safari cũ)
+  // thì tự động dùng lại ảnh gốc thay vì bỏ qua, để ảnh vẫn được thêm vào.
+  async function fileToCompressedDataUrl(file, maxDim = 1600, quality = 0.82){
+    const raw = await readFileAsDataUrl(file);
+    try{
+      return await new Promise((resolve, reject) => {
         const img = new Image();
-        img.onerror = reject;
+        img.onerror = () => reject(new Error('Không giải mã được ảnh'));
         img.onload = () => {
           let width = img.naturalWidth, height = img.naturalHeight;
+          if(!width || !height){ reject(new Error('Ảnh không có kích thước hợp lệ')); return; }
           if(width > maxDim || height > maxDim){
             const scale = maxDim / Math.max(width, height);
             width = Math.round(width * scale);
@@ -682,12 +649,15 @@
           canvas.width = width;
           canvas.height = height;
           canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', quality));
+          try{
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          }catch(e){ reject(e); }
         };
-        img.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    });
+        img.src = raw;
+      });
+    }catch(e){
+      return raw; // dùng ảnh gốc chưa nén thay vì thất bại hoàn toàn
+    }
   }
 
   async function addFiles(id, files){
@@ -718,17 +688,20 @@
     }
 
     let photos = storeGet(`photos:${id}`) || [];
+    let failedCount = 0;
     for(const file of files){
       try{
         const dataUrl = await fileToCompressedDataUrl(file);
         photos.push(dataUrl);
-      }catch(err){ console.error('Lỗi xử lý ảnh', err); }
+      }catch(err){ console.error('Lỗi xử lý ảnh', err); failedCount++; }
     }
     const saved = storeSet(`photos:${id}`, photos);
     renderGallery(id, photos, false);
     if(label){ label.textContent = originalLabel; label.style.opacity = '1'; label.style.pointerEvents = 'auto'; }
     if(!saved){
-      alert('Trình duyệt đang chặn lưu trữ cục bộ (chế độ riêng tư hoặc cài đặt trình duyệt). Ảnh vẫn hiển thị nhưng sẽ mất khi tải lại trang. Kết nối GitHub ở trên để lưu vĩnh viễn.');
+      alert('Trình duyệt đang chặn lưu trữ cục bộ (chế độ riêng tư hoặc cài đặt trình duyệt). Ảnh vẫn hiển thị nhưng sẽ mất khi tải lại trang.');
+    }else if(failedCount){
+      alert(failedCount + ' ảnh không đọc được và chưa được thêm. Thử lại với ảnh đó hoặc chụp lại.');
     }
   }
 
