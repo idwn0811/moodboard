@@ -377,7 +377,6 @@
     <div class="eyebrow">01</div>
     <h2>Ba bối cảnh</h2>
   </div>
-  <div class="preview-note">Bảng này lưu ảnh và chữ ngay trên trình duyệt bạn đang dùng. Nếu xem trong khung chat mà nút "Thêm ảnh" không phản hồi, hãy tải file .html về và mở bằng Safari/Chrome — trên máy tính bạn cũng có thể kéo-thả ảnh thẳng vào khung.</div>
 
   <div class="board" data-board-id="badaa">
     <div class="board-content-simple">
@@ -493,7 +492,11 @@
     const body = { message, content: base64Content, branch };
     if(sha) body.sha = sha;
     const res = await fetch(`https://api.github.com/repos/${s.owner}/${s.repo}/contents/${path}`, { method:'PUT', headers, body: JSON.stringify(body) });
-    if(!res.ok){ const t = await res.text(); throw new Error('Ghi lên GitHub thất bại (' + res.status + ')'); }
+    if(!res.ok){
+      let detail = '';
+      try{ detail = (await res.json()).message || ''; }catch(e){}
+      throw new Error('Ghi lên GitHub thất bại (' + res.status + ')' + (detail ? ': ' + detail : ''));
+    }
     return res.json();
   }
   async function ghDeleteFile(path, sha, message){
@@ -501,7 +504,11 @@
     const branch = s.branch || 'main';
     const headers = { 'Accept':'application/vnd.github+json', 'Authorization':'token ' + s.token, 'Content-Type':'application/json' };
     const res = await fetch(`https://api.github.com/repos/${s.owner}/${s.repo}/contents/${path}`, { method:'DELETE', headers, body: JSON.stringify({ message, sha, branch }) });
-    if(!res.ok){ const t = await res.text(); throw new Error('Xoá trên GitHub thất bại (' + res.status + ')'); }
+    if(!res.ok){
+      let detail = '';
+      try{ detail = (await res.json()).message || ''; }catch(e){}
+      throw new Error('Xoá trên GitHub thất bại (' + res.status + ')' + (detail ? ': ' + detail : ''));
+    }
     return res.json();
   }
 
@@ -623,11 +630,14 @@
           const item = photos[idx];
           btn.textContent = '…';
           try{
-            await ghDeleteFile(item.path, item.sha, `Xoá ảnh ${item.path}`);
+            const fresh = await ghGetFile(item.path);
+            if(!fresh){ throw new Error('Không tìm thấy file này trên GitHub nữa (có thể đã bị xoá từ trước) — tải lại trang.'); }
+            await ghDeleteFile(item.path, fresh.sha, `Xoá ảnh ${item.path}`);
             loadGallery(id);
           }catch(err){
             console.error(err);
             alert(err.message);
+            loadGallery(id);
           }
         }else{
           let current = storeGet(`photos:${id}`) || [];
